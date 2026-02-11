@@ -1,0 +1,96 @@
+Step 1: Define the docstring format (single source of truth)
+
+In core/spec_format.py, standardize this:
+
+"""
+...human docstring...
+
+@testai_json:
+{
+  "cases": [
+    {"in": {"root": null}, "out": []}
+  ],
+  "raises": [
+    {"in": {"x": -1}, "type": "ValueError", "match": "positive"}
+  ]
+}
+"""
+
+
+Rules (v1):
+
+Top-level keys: cases (list), raises (list, optional)
+
+Each case: { "in": {arg: value, ...}, "out": <json_value> }
+
+Each raise: { "in": {...}, "type": "ValueError", "match": "optional substring/regex" }
+
+JSON null/true/false map to Python None/True/False
+
+Step 2: Implement Python discover (AST) — read-only
+
+In languages/python/discover.py:
+
+parse file with ast
+
+find top-level FunctionDef (later: classes/methods)
+
+return a list of symbols with:
+
+name
+
+args
+
+docstring (if any)
+
+file path + line range (useful later)
+
+Goal: discover(file.py) prints “found 3 functions”.
+
+Step 3: Parse @testai_json out of docstrings (no LLM)
+
+In languages/python/spec_extract.py (or core/spec_format.py):
+
+locate the substring after @testai_json:
+
+parse JSON (Python json.loads)
+
+validate schema
+
+return structured TestPlan objects
+
+Goal: if a function has the block, you can extract cases.
+
+Step 4: Render pytest from the extracted cases (no LLM)
+
+In languages/python/render_pytest.py:
+
+generate import pytest
+
+import target funcs (from myfile import inorder)
+
+for each function, create:
+
+@pytest.mark.parametrize(...) if multiple cases
+
+with pytest.raises(...) for raises
+
+Goal: generate a runnable test file even if it fails (because function is pass).
+
+Step 5: Writer
+
+In core/writer.py:
+
+map src/foo.py → tests/test_foo.py
+
+create tests/ if missing
+
+overwrite for v1 (update/merge later)
+
+Step 6: Wire the CLI
+
+In cli.py:
+
+test-ai gen path.py runs: discover → extract → render → write
+
+
