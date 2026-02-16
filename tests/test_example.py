@@ -9,10 +9,25 @@ assert spec and spec.loader
 spec.loader.exec_module(target_module)
 
 @pytest.mark.parametrize('case_in,expected', [
-    ({'x': 2}, True),
-    ({'x': 3}, False),
-    ({'x': 0}, True),
+    ({'x': 1, 'y': 5}, True),
+    ({'x': 2, 'y': 4}, True),
+    ({'x': 3, 'y': 10}, False),
+    ({'x': 5, 'y': 25}, True),
+    ({'x': 0, 'y': 10}, False),
+    ({'x': 10, 'y': 10}, True),
 ])
-def test_is_even_cases(case_in, expected):
-    result = target_module.is_even(**case_in)
+def test_divisable_cases(case_in, expected):
+    result = target_module.divisable(**case_in)
     assert result == expected
+
+def test_divisable_raises_1():
+    with pytest.raises(TypeError):
+        target_module.divisable(**{'x': 'a', 'y': 10})
+
+def test_divisable_raises_2():
+    with pytest.raises(TypeError):
+        target_module.divisable(**{'x': 2, 'y': None})
+
+def test_divisable_raises_3():
+    with pytest.raises(TypeError):
+        target_module.divisable(**{'x': None, 'y': 10})
