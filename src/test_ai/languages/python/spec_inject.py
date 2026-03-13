@@ -97,7 +97,7 @@ def inject_specs_into_file(
             doc_stmt = node.body[0]
             start = doc_stmt.lineno - 1
             end = doc_stmt.end_lineno - 1  # inclusive
-            replacement = _indent_lines(new_doc_stmt, fn_indent).splitlines()
+            replacement = _indent_lines(new_doc_stmt, body_indent).splitlines()
             edits.append((start, end, replacement))
         else:
             # Insert after the def line

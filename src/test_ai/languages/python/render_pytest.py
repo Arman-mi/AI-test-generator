@@ -1,64 +1,44 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List, Optional
+from pathlib import Path
+from typing import Any, Dict, List
 
 
 def _safe_ident(s: str) -> str:
-    """
-    Make a safe-ish python identifier chunk for test names.
-    """
     s = re.sub(r"[^a-zA-Z0-9_]+", "_", s)
     s = re.sub(r"_+", "_", s).strip("_")
     return s or "x"
 
 
 def _py_literal(value: Any) -> str:
-    """
-    Convert a parsed JSON value (None/bool/int/float/str/list/dict) into Python code.
-    For JSON, repr() is enough.
-    """
     return repr(value)
 
 
 def render_pytest_for_module(
     module_path: str,
-    discovered: List[Dict[str, Any]],
+    specs_by_function: Dict[str, Dict[str, Any]],
 ) -> str:
-    """
-    Render a pytest file for one module.
-
-    discovered items look like:
-      {"name": "preorder", "args": ["root"], "spec": {...} or None}
-    """
     lines: List[str] = []
     lines.append("import pytest")
-                 #commented out for now different iteration                                        # lines.append(f"import {module_path}")
-                 # trying something else                                       # lines.append("")
-                                                        # lines.append("import pytest")
     lines.append("import importlib.util")
     lines.append("from pathlib import Path")
     lines.append("")
-    lines.append(f"MODULE_PATH = Path({repr(module_path)}).resolve()")
+    lines.append(f"MODULE_PATH = Path({repr(str(Path(module_path).resolve()))})")
     lines.append("spec = importlib.util.spec_from_file_location('target_module', MODULE_PATH)")
     lines.append("target_module = importlib.util.module_from_spec(spec)")
     lines.append("assert spec and spec.loader")
     lines.append("spec.loader.exec_module(target_module)")
     lines.append("")
 
+    any_tests = False
 
-    for fn in discovered:
-        fn_name: str = fn["name"]
-        spec: Optional[Dict[str, Any]] = fn.get("spec")
+    for fn_name, spec_obj in specs_by_function.items():
+        cases = spec_obj.get("cases", []) or []
+        raises_cases = spec_obj.get("raises", []) or []
 
-        if not spec:
-            continue
-
-        cases = spec.get("cases", []) or []
-        raises_cases = spec.get("raises", []) or []
-
-        # ---- normal cases ----
         if cases:
+            any_tests = True
             param_rows: List[str] = []
             for case in cases:
                 case_in = case.get("in", {})
@@ -66,7 +46,7 @@ def render_pytest_for_module(
                 param_rows.append(f"    ({_py_literal(case_in)}, {_py_literal(expected)}),")
 
             test_name = f"test_{_safe_ident(fn_name)}_cases"
-            lines.append(f"@pytest.mark.parametrize('case_in,expected', [")
+            lines.append("@pytest.mark.parametrize('case_in,expected', [")
             lines.extend(param_rows)
             lines.append("])")
             lines.append(f"def {test_name}(case_in, expected):")
@@ -74,8 +54,8 @@ def render_pytest_for_module(
             lines.append("    assert result == expected")
             lines.append("")
 
-        # ---- raises cases ----
         for i, rcase in enumerate(raises_cases):
+            any_tests = True
             case_in = rcase.get("in", {})
             exc_type = rcase.get("type", "Exception")
             match = rcase.get("match")
@@ -89,9 +69,8 @@ def render_pytest_for_module(
             lines.append(f"        target_module.{fn_name}(**{_py_literal(case_in)})")
             lines.append("")
 
-    if len(lines) <= 3:
-        lines.append("# No @testai_json specs found to generate tests.")
+    if not any_tests:
+        lines.append("# No specs found to generate tests.")
         lines.append("")
 
     return "\n".join(lines)
-
