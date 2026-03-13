@@ -1,3 +1,4 @@
 .env
 __pycache__
 src/test_ai.egg-info
+plan.txt
