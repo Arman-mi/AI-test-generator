@@ -2,3 +2,6 @@
 __pycache__
 src/test_ai.egg-info
 plan.txt
+__pycache__/
+*.pyc
+
