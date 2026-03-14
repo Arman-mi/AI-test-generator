@@ -6,6 +6,8 @@ Instead of generating tests directly, Test-AI generates **structured test specif
 
 This approach makes generated tests easier to review, debug, and regenerate.
 
+video demo available: https://www.youtube.com/watch?v=vJ3XWHqWs8c
+
 ---
 
 # How It Works
@@ -117,20 +119,27 @@ Generate tests:
 
 test-ai gen file.py
 
-Optional flags:
+## Project Structure
 
---dry-run
---force
-Project Structure
+```
 test_ai/
-├── cli.py
+├── cli.py                     # CLI entrypoint (spec + gen commands)
+│
 ├── core/
-│   └── spec_store.py
-├── languages/python/
-│   ├── discover.py
-│   ├── marker_inject.py
-│   ├── render_pytest.py
-│   └── spec_extract.py
+│   └── spec_store.py          # load/save sidecar JSON specs
+│
+├── languages/
+│   └── python/
+│       ├── discover.py        # AST-based function discovery
+│       ├── marker_inject.py   # inserts @testai markers in source
+│       ├── render_pytest.py   # converts specs -> pytest tests
+│       ├── spec_extract.py    # parses inline @testai_json blocks
+│       └── spec_inject.py     # legacy docstring spec injection
+│
 └── llm/
+    ├── client.py              # OpenAI API client + spec validation
+    └── prompts.py             # LLM prompts and function context
+```
     ├── client.py
     └── prompts.py
+
