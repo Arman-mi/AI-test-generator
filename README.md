@@ -99,7 +99,8 @@ source .venv/bin/activate
 
 Install dependencies:
 
-pip install -r requirements.txt
+make sure you have OPENAI's library, this code is written for OpenAI's LLM endpoint
+a pyproject.toml is provided for clean installation
 Environment Setup
 
 Set your OpenAI API key:
